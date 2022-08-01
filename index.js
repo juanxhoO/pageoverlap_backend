@@ -1,11 +1,17 @@
 const puppeteer = require("puppeteer");
 const cors = require('cors');
 const im = require('imagemagick');
-
+const Pages = require('./models/Directories.js')
 const express = require('express');
 var bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
+const Screenshots = require('./models/screenshots.js');
+
+//Import the mongoose module
+const mongoose = require('mongoose');
+
+
 app.use(bodyParser.urlencoded())
 // parse application/json
 app.use(bodyParser.json())
@@ -13,6 +19,30 @@ const port = 3080
 app.use(cors());
 app.use(express.static('public'));
 app.use('/images', express.static('ImageDatabase'));
+
+//Set up default mongoose connection
+var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
+const db = mongoose.connection;
+
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
+app.get('api/directory', async (req, res) => {
+
+
+})
+
+
+app.delete('api/screenshot/:Id', async (req, res) => {
+    const id = req.query.id
+    const screenshot = await Screenshot.findById(id);
+
+
+})
+
+
+
+
 
 app.post('/api/abovefold', async (req, res) => {
     const { url } = req.body
@@ -39,7 +69,7 @@ app.post('/api/abovefold', async (req, res) => {
 
     page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36');
     await page.goto(url);
-    let hostname = domain_from_url(page.url());
+    const hostname = domain_from_url(page.url());
 
     await page.waitForTimeout(1200);
     await page.evaluate(() => {
@@ -55,7 +85,7 @@ app.post('/api/abovefold', async (req, res) => {
     var fs = require('fs');
     var dir = './ImageDatabase/' + hostname;
     var imageName = hostname + "-" + year + "-" + month + "-" + day + "-" + hours + "-" + minutes + "-" + seconds;
-    
+
     if (!fs.existsSync(dir)) {
         console.log('pathfile does not exists');
         fs.mkdirSync(dir, { recursive: true });
@@ -65,7 +95,6 @@ app.post('/api/abovefold', async (req, res) => {
         path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: false,
         omitBackground: true
     });
-
 
     // im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".png", '-resize', '256x120', "./ImageDatabase/" + hostname + "/thumbnails/"  + imageName + ".jpg"], 
     // function(err, stdout){
@@ -84,8 +113,41 @@ app.post('/api/abovefold', async (req, res) => {
     // });
 
     await browser.close();
-    res.status(200)
-    res.send("/images/"+ hostname + "/" + imageName + ".png");
+
+    //saving directory info
+
+    let doc_page = await Pages.findOne({ hostname })
+    if (!doc_page) {
+        const doc_page = new Pages({
+            title: "dsdsd",
+            url: url,
+            type: 'png',
+            directory: dir,
+            hostname: hostname
+        });
+        await doc_page.save();
+        console.log('directory saved');
+    }
+    //saving screenshot info
+    const screenshot = await new Screenshots({
+        title: imageName + ".png",
+        url: url,
+        hostname: hostname,
+        directory: "/images/" + imageName,
+        hostname: hostname
+    });
+
+    await screenshot.save(function (err) {
+        if (err) {
+            res.status(500);
+            res.send(err);
+        }
+        res.status(200)
+        res.send("/images/" + hostname + "/" + imageName + ".png");
+    });
+
+
+
 })
 
 function domain_from_url(url) {
@@ -102,52 +164,6 @@ function domain_from_url(url) {
     }
     return result
 }
-
-
-
-
-// function fullscreeshoot() {
-//     puppeteer
-//         .launch({
-//             defaultViewport: null
-//         })
-//         .then(async (browser) => {
-//             const page = await browser.newPage();
-//             await page.setViewport({
-//                 width: 1916,
-//                 height: 480,
-//                 deviceScaleFactor: 1
-//             });
-
-
-
-//             await page.goto("https://stackoverflow.com/questions/38884522/why-is-my-asynchronous-function-returning-promise-pending-instead-of-a-val");
-//             await page.screenshot({ path: "nyt-puppeteer.png", fullPage: true });
-//             await browser.close();
-
-//         });
-// }
-
-
-// function abovefoldscreenthoot() {
-//     puppeteer
-//         .launch({
-//             defaultViewport: null
-//         })
-//         .then(async (browser) => {
-//             const page = await browser.newPage();
-//             await page.setViewport({
-//                 width: 1916,
-//                 height: 480,
-//                 deviceScaleFactor: 1
-//             });
-//             await page.goto("https://stackoverflow.com/questions/38884522/why-is-my-asynchronous-function-returning-promise-pending-instead-of-a-val");
-//             await page.screenshot({ path: "nyt-puppeteer.png", fullPage: true });
-//             await browser.close();
-//         });
-// }
-
-
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
