@@ -10,6 +10,7 @@ const Screenshots = require('./models/screenshots.js');
 
 //Import the mongoose module
 const mongoose = require('mongoose');
+const { hostname } = require("os");
 
 
 app.use(bodyParser.urlencoded())
@@ -27,22 +28,27 @@ const db = mongoose.connection;
 
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
-app.get('api/directory', async (req, res) => {
 
+app.get('/api/directory', async (req, res) => {
+    const hostnames = await  Pages.find({});
+    console.log(hostnames);
+    res.status(200).send(hostnames);
+})
 
+app.get('/api/directory/:id', async (req, res) => {
+    host_query  = req.params.id
+    console.log(host_query);
+    const results = await   Screenshots.find({hostname:host_query})
+    res.status(200);
+    res.send(results);
 })
 
 
-app.delete('api/screenshot/:Id', async (req, res) => {
+
+app.delete('/api/screenshot/:Id', async (req, res) => {
     const id = req.query.id
     const screenshot = await Screenshot.findById(id);
-
-
 })
-
-
-
-
 
 app.post('/api/abovefold', async (req, res) => {
     const { url } = req.body
@@ -81,6 +87,7 @@ app.post('/api/abovefold', async (req, res) => {
             }
         }
     });
+    const screenshot_url = await page.url(); 
 
     var fs = require('fs');
     var dir = './ImageDatabase/' + hostname;
@@ -95,6 +102,7 @@ app.post('/api/abovefold', async (req, res) => {
         path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: false,
         omitBackground: true
     });
+
 
     // im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".png", '-resize', '256x120', "./ImageDatabase/" + hostname + "/thumbnails/"  + imageName + ".jpg"], 
     // function(err, stdout){
