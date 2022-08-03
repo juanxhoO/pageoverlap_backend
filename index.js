@@ -48,6 +48,7 @@ app.get('/api/directory/:id', async (req, res) => {
 app.delete('/api/screenshot/:Id', async (req, res) => {
     const id = req.query.id
     const screenshot = await Screenshot.findById(id);
+
 })
 
 app.post('/api/abovefold', async (req, res) => {
