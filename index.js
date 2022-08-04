@@ -7,13 +7,13 @@ var bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
 const Screenshots = require('./models/screenshots.js');
+const fs = require('fs');
 
 //Import the mongoose module
 const mongoose = require('mongoose');
-const { hostname } = require("os");
 
 
-//app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
 const port = 3080
@@ -22,7 +22,8 @@ app.use(express.static('public'));
 app.use('/images', express.static('ImageDatabase'));
 
 //Set up default mongoose connection
-var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -30,22 +31,22 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 
 app.get('/api/directory', async (req, res) => {
-    const hostnames = await  Pages.find({});
+    const hostnames = await Pages.find({});
     console.log(hostnames);
     res.status(200).send(hostnames);
 })
 
 app.get('/api/directory/:id', async (req, res) => {
-    host_query  = req.params.id
+    host_query = req.params.id
     console.log(host_query);
-    const results = await   Screenshots.find({hostname:host_query})
+    const results = await Screenshots.find({ hostname: host_query })
     res.status(200);
     res.send(results);
 })
 
-app.get('/api/directory/thumbnails', async (req, res) => {    
+app.get('/api/thumbnails', async (req, res) => {
     console.log(req.body.pathname)
-    const thumbnails = await Screenshots.find({pathname:pathname});
+    const thumbnails = await Screenshots.find({ pathname: pathname });
     res.status(200);
     res.send(thumbnails);
 })
@@ -74,7 +75,7 @@ app.post('/api/abovefold', async (req, res) => {
     let seconds = date.getSeconds();
 
     await page.setViewport({
-        width: 1366,
+        width: 1280,
         height: 768,
         deviceScaleFactor: 1
     });
@@ -83,7 +84,7 @@ app.post('/api/abovefold', async (req, res) => {
     await page.goto(url);
     const hostname = domain_from_url(page.url());
 
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(400);
     await page.evaluate(() => {
         document.body.style.background = 'transparent';
         header_divs = document.querySelectorAll('div ');
@@ -93,58 +94,50 @@ app.post('/api/abovefold', async (req, res) => {
             }
         }
     });
-    const screenshot_url = await page.url(); 
+    const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
     const screenshot_pathname = parsed_url.pathname
 
 
-    var fs = require('fs');
-    var dir = './ImageDatabase/' + hostname;
+    const main_dir = './ImageDatabase/' + hostname;
+    const thumbnail_main_dir = './ImageDatabase/' + hostname + '/thumbnails';
+
     var imageName = hostname + "-" + year + "-" + month + "-" + day + "-" + hours + "-" + minutes + "-" + seconds;
 
-    if (!fs.existsSync(dir)) {
-        console.log('pathfile does not exists');
-        fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(main_dir)) {
+        console.log('main pathfile does not exists');
+        fs.mkdirSync(main_dir, { recursive: true });
     }
 
+
+    if (!fs.existsSync(thumbnail_main_dir)) {
+        console.log('thumbnail pathfile does not exists');
+        fs.mkdirSync(thumbnail_main_dir, { recursive: true });
+    }
+
+
+    //Saving JPG Screenshot
     await page.screenshot({
-        path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: false,
+        path: "./ImageDatabase/" + hostname + "/" + imageName + ".jpg", fullPage: false,
         omitBackground: true
     });
 
 
-    // im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".png", '-resize', '256x120', "./ImageDatabase/" + hostname + "/thumbnails/"  + imageName + ".jpg"], 
-    // function(err, stdout){
-    //   if (err) throw err;
-    //   console.log('stdout:', stdout);
-    // });
-
-    // im.resize({
-    //     srcPath: "./ImageDatabase/" + hostname + "/" + imageName + ".png",
-    //     dstPath: "./ImageDatabase/" + hostname + "/thumbnails" + imageName +  ".jpg",
-    //     width: 356,  quality: 1,
-
-    // }, function (err, stdout, stderr) {
-    //     if (err) throw err;
-    //     console.log('resized kittens.jpg to fit within 256x256px');
-    // });
-
-    await browser.close();
-
-    //saving directory info
-
+    //Saving Directories Info
     let doc_page = await Pages.findOne({ hostname })
     if (!doc_page) {
         const doc_page = new Pages({
             title: "dsdsd",
             url: url,
             type: 'png',
-            directory: dir,
+            directory: main_dir,
             hostname: hostname
         });
         await doc_page.save();
         console.log('directory saved');
     }
+
+
     //saving screenshot info
     const screenshot = await new Screenshots({
         title: imageName + ".png",
@@ -164,8 +157,20 @@ app.post('/api/abovefold', async (req, res) => {
         res.send("/images/" + hostname + "/" + imageName + ".png");
     });
 
+    //PNG Screenshot
+    await page.screenshot({
+        path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: false,
+        omitBackground: true
+    });
 
-
+    //Creating Thumbnail
+    im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
+        function (err, stdout) {
+            if (err) throw err;
+            console.log('stdout:', stdout);
+        });
+    await browser.close();
+    //saving directory info
 })
 
 function domain_from_url(url) {
