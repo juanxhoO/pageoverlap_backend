@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const { hostname } = require("os");
 
 
-app.use(bodyParser.urlencoded())
+//app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
 const port = 3080
@@ -43,6 +43,12 @@ app.get('/api/directory/:id', async (req, res) => {
     res.send(results);
 })
 
+app.get('/api/directory/thumbnails', async (req, res) => {    
+    console.log(req.body.pathname)
+    const thumbnails = await Screenshots.find({pathname:pathname});
+    res.status(200);
+    res.send(thumbnails);
+})
 
 
 app.delete('/api/screenshot/:Id', async (req, res) => {
@@ -67,7 +73,6 @@ app.post('/api/abovefold', async (req, res) => {
     let minutes = date.getMinutes();
     let seconds = date.getSeconds();
 
-
     await page.setViewport({
         width: 1366,
         height: 768,
@@ -89,6 +94,9 @@ app.post('/api/abovefold', async (req, res) => {
         }
     });
     const screenshot_url = await page.url(); 
+    const parsed_url = new URL(screenshot_url)
+    const screenshot_pathname = parsed_url.pathname
+
 
     var fs = require('fs');
     var dir = './ImageDatabase/' + hostname;
@@ -141,6 +149,7 @@ app.post('/api/abovefold', async (req, res) => {
     const screenshot = await new Screenshots({
         title: imageName + ".png",
         url: url,
+        pathname: screenshot_pathname,
         hostname: hostname,
         directory: "/images/" + imageName,
         hostname: hostname

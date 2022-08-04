@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 const screenshotSchema = new Schema({
     title: String, // String is shorthand for {type: String}
     url: String,
+    pathname:String,
     directory:String,
     hostname:String,
     type:String,
