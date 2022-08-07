@@ -19,11 +19,12 @@ app.use(bodyParser.json())
 const port = 3080
 app.use(cors());
 app.use(express.static('public'));
-app.use('/images', express.static('ImageDatabase'));
+//app.use('/images', express.static('ImageDatabase'));
+app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 
 //Set up default mongoose connection
-//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -45,8 +46,7 @@ app.get('/api/directory/:id', async (req, res) => {
 })
 
 app.get('/api/thumbnails', async (req, res) => {
-    console.log(req.body.pathname)
-    const thumbnails = await Screenshots.find({ pathname: pathname });
+    const thumbnails = await Screenshots.find({ hostname: req.query.hostname, pathname: req.query.pathname });
     res.status(200);
     res.send(thumbnails);
 })
@@ -59,7 +59,7 @@ app.delete('/api/screenshot/:Id', async (req, res) => {
 })
 
 app.post('/api/abovefold', async (req, res) => {
-    const { url } = req.body
+    const { url, type } = req.body
     let browser = await puppeteer.launch();
     let page = await browser.newPage();
     let date = new Date();
@@ -73,12 +73,38 @@ app.post('/api/abovefold', async (req, res) => {
     // current minutes
     let minutes = date.getMinutes();
     let seconds = date.getSeconds();
+    let fulllPageScreen = false;
 
-    await page.setViewport({
-        width: 1280,
-        height: 768,
-        deviceScaleFactor: 1
-    });
+    if (type == "abovefold") {
+
+        await page.setViewport({
+            width: 1280,
+            height: 768,
+            deviceScaleFactor: 1
+        });
+    }
+
+    else if (type == "belowfold") {
+        await page.setViewport({
+            width: 1280,
+            height: 1536,
+            deviceScaleFactor: 1
+        });
+    }
+
+    else if (type == "fullscreen") {
+        fulllPageScreen = true
+    }
+
+    else {
+
+        await page.setViewport({
+            width: 1280,
+            height: 768,
+            deviceScaleFactor: 1
+        });
+    }
+
 
     page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36');
     await page.goto(url);
@@ -109,16 +135,14 @@ app.post('/api/abovefold', async (req, res) => {
         fs.mkdirSync(main_dir, { recursive: true });
     }
 
-
     if (!fs.existsSync(thumbnail_main_dir)) {
         console.log('thumbnail pathfile does not exists');
         fs.mkdirSync(thumbnail_main_dir, { recursive: true });
     }
 
-
     //Saving JPG Screenshot
     await page.screenshot({
-        path: "./ImageDatabase/" + hostname + "/" + imageName + ".jpg", fullPage: false,
+        path: "./ImageDatabase/" + hostname + "/" + imageName + ".jpg", fullPage: fulllPageScreen,
         omitBackground: true
     });
 
@@ -140,11 +164,10 @@ app.post('/api/abovefold', async (req, res) => {
 
     //saving screenshot info
     const screenshot = await new Screenshots({
-        title: imageName + ".png",
+        title: imageName,
         url: url,
         pathname: screenshot_pathname,
-        hostname: hostname,
-        directory: "/images/" + imageName,
+        directory: "/images/" + hostname,
         hostname: hostname
     });
 
@@ -154,12 +177,12 @@ app.post('/api/abovefold', async (req, res) => {
             res.send(err);
         }
         res.status(200)
-        res.send("/images/" + hostname + "/" + imageName + ".png");
+        res.send("/images/" + hostname + "/" + imageName + ".jpg");
     });
 
     //PNG Screenshot
     await page.screenshot({
-        path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: false,
+        path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: fulllPageScreen,
         omitBackground: true
     });
 
