@@ -23,8 +23,8 @@ app.use(express.static('public'));
 app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 
 //Set up default mongoose connection
-var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -113,13 +113,19 @@ app.post('/api/abovefold', async (req, res) => {
     await page.waitForTimeout(400);
     await page.evaluate(() => {
         document.body.style.background = 'transparent';
-        header_divs = document.querySelectorAll('div ');
+        header_divs = document.querySelectorAll('div');
+
+        document.querySelector('html').style.background = "transparent";
         for (let i = 0; i < header_divs.length; i++) {
             if (header_divs[i].style.backgroundImage.length <= 0) {
                 header_divs[i].style.background = 'transparent';
+                header_divs[i].style.backgroundColor = 'transparent';
             }
         }
     });
+
+   
+
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
     const screenshot_pathname = parsed_url.pathname
@@ -168,7 +174,8 @@ app.post('/api/abovefold', async (req, res) => {
         url: url,
         pathname: screenshot_pathname,
         directory: "/images/" + hostname,
-        hostname: hostname
+        hostname: hostname,
+        Screentype: dsdsd
     });
 
     await screenshot.save(function (err) {
