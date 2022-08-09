@@ -52,13 +52,20 @@ app.get('/api/thumbnails', async (req, res) => {
 })
 
 
-app.delete('/api/screenshot/:Id', async (req, res) => {
-    const id = req.query.id
-    const screenshot = await Screenshot.findById(id);
+app.get('/api/screenshots/:Id', async (req, res) => {
+    const id = req.params.Id
+    const screenshot = await Screenshots.findById(id);
+    res.status(200).send(screenshot)
 
 })
 
-app.post('/api/abovefold', async (req, res) => {
+app.delete('/api/screenshots/:Id', async (req, res) => {
+    const id = req.params.Id
+    const screenshot = await Screenshots.deleteOne({ _id: id });
+    res.status(200).send(screenshot)
+})
+
+app.post('/api/pageshot', async (req, res) => {
     const { url, type } = req.body
     let browser = await puppeteer.launch();
     let page = await browser.newPage();
@@ -74,9 +81,9 @@ app.post('/api/abovefold', async (req, res) => {
     let minutes = date.getMinutes();
     let seconds = date.getSeconds();
     let fulllPageScreen = false;
-
+    let screenshot_dimensions;
     if (type == "abovefold") {
-
+        screenshot_dimensions = [1280, 768];
         await page.setViewport({
             width: 1280,
             height: 768,
@@ -85,6 +92,7 @@ app.post('/api/abovefold', async (req, res) => {
     }
 
     else if (type == "belowfold") {
+        screenshot_dimensions = [1280, 1536];
         await page.setViewport({
             width: 1280,
             height: 1536,
@@ -97,7 +105,7 @@ app.post('/api/abovefold', async (req, res) => {
     }
 
     else {
-
+        screenshot_dimensions = [1280, 768];
         await page.setViewport({
             width: 1280,
             height: 768,
@@ -124,7 +132,7 @@ app.post('/api/abovefold', async (req, res) => {
         }
     });
 
-   
+
 
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
@@ -175,7 +183,8 @@ app.post('/api/abovefold', async (req, res) => {
         pathname: screenshot_pathname,
         directory: "/images/" + hostname,
         hostname: hostname,
-        Screentype: dsdsd
+        dimensions: screenshot_dimensions,
+        Screentype: type
     });
 
     await screenshot.save(function (err) {

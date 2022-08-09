@@ -8,7 +8,8 @@ const screenshotSchema = new Schema({
     pathname:String,
     directory:String,
     hostname:String,
-    type:String,
+    Screentype:String,
+    dimensions:[Number],
     date: { type: Date, default: Date.now },
 });
 
