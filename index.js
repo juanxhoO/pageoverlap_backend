@@ -8,6 +8,7 @@ const path = require('path');
 const app = express();
 const Screenshots = require('./models/screenshots.js');
 const fs = require('fs');
+const compression = require('compression');
 
 //Import the mongoose module
 const mongoose = require('mongoose');
@@ -21,6 +22,7 @@ app.use(cors());
 app.use(express.static('public'));
 //app.use('/images', express.static('ImageDatabase'));
 app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
+app.use(compression());
 
 //Set up default mongoose connection
 //var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
