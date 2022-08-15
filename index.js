@@ -67,7 +67,7 @@ app.delete('/api/screenshots/:Id', async (req, res) => {
 
 app.post('/api/pageshot', async (req, res) => {
     const { url, type } = req.body
-    let browser = await puppeteer.launch();
+    let browser = await  puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']})
     let page = await browser.newPage();
     let date = new Date();
     let day = ("0" + date.getDate()).slice(-2);
