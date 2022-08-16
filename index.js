@@ -25,8 +25,8 @@ app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 app.use(compression());
 
 //Set up default mongoose connection
-//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -39,18 +39,33 @@ app.get('/api/directory', async (req, res) => {
     res.status(200).send(hostnames);
 })
 
-app.get('/api/directory/:id', async (req, res) => {
+app.get('/api/directory/:id', (req, res) => {
     host_query = req.params.id
     console.log(host_query);
-    const results = await Screenshots.find({ hostname: host_query })
-    res.status(200);
-    res.send(results);
+    const results = Screenshots.distinct('pathname', { hostname: host_query }, function (error, results) {
+        console.log("distinc works");
+        res.status(200);
+        res.send(results);
+    });
+
 })
 
 app.get('/api/thumbnails', async (req, res) => {
-    const thumbnails = await Screenshots.find({ hostname: req.query.hostname, pathname: req.query.pathname });
-    res.status(200);
-    res.send(thumbnails);
+    if (req.query.url) {
+        let thumbnails = await Screenshots.find({ url: req.query.url });
+        res.status(200);
+        res.send(thumbnails);
+
+        req.query.url
+    }
+
+
+    else {
+        let thumbnails = await Screenshots.find({ hostname: req.query.hostname, pathname: req.query.pathname });
+        res.status(200);
+        res.send(thumbnails);
+    }
+
 })
 
 
