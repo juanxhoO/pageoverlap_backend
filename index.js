@@ -35,15 +35,14 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 app.get('/api/directory', async (req, res) => {
     const hostnames = await Pages.find({});
-    console.log(hostnames);
+    //console.log(hostnames);
     res.status(200).send(hostnames);
 })
 
 app.get('/api/directory/:id', (req, res) => {
     host_query = req.params.id
-    console.log(host_query);
+    //console.log(host_query);
     const results = Screenshots.distinct('pathname', { hostname: host_query }, function (error, results) {
-        console.log("distinc works");
         res.status(200);
         res.send(results);
     });
@@ -59,15 +58,12 @@ app.get('/api/thumbnails', async (req, res) => {
         req.query.url
     }
 
-
     else {
         let thumbnails = await Screenshots.find({ hostname: req.query.hostname, pathname: req.query.pathname });
         res.status(200);
         res.send(thumbnails);
     }
-
 })
-
 
 app.get('/api/screenshots/:Id', async (req, res) => {
     const id = req.params.Id
@@ -135,21 +131,7 @@ app.post('/api/pageshot', async (req, res) => {
     await page.goto(url);
     const hostname = domain_from_url(page.url());
 
-    await page.waitForTimeout(400);
-    await page.evaluate(() => {
-        document.body.style.background = 'transparent';
-        header_divs = document.querySelectorAll('div');
-
-        document.querySelector('html').style.background = "transparent";
-        for (let i = 0; i < header_divs.length; i++) {
-            if (header_divs[i].style.backgroundImage.length <= 0) {
-                header_divs[i].style.background = 'transparent';
-                header_divs[i].style.backgroundColor = 'transparent';
-            }
-        }
-    });
-
-
+    await page.waitForTimeout(500);
 
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
@@ -177,6 +159,19 @@ app.post('/api/pageshot', async (req, res) => {
         omitBackground: true
     });
 
+
+    await page.evaluate(() => {
+        document.body.style.background = 'transparent';
+        header_divs = document.querySelectorAll('div');
+
+        document.querySelector('html').style.background = "transparent";
+        for (let i = 0; i < header_divs.length; i++) {
+            if (header_divs[i].style.backgroundImage.length <= 0) {
+                header_divs[i].style.background = 'transparent';
+                header_divs[i].style.backgroundColor = 'transparent';
+            }
+        }
+    });
 
     //Saving Directories Info
     let doc_page = await Pages.findOne({ hostname })
@@ -220,11 +215,39 @@ app.post('/api/pageshot', async (req, res) => {
     });
 
     //Creating Thumbnail
-    im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
-        function (err, stdout) {
-            if (err) throw err;
-            console.log('stdout:', stdout);
-        });
+
+
+
+    if (fulllPageScreen === true) {
+        console.log("fullpage screen")
+
+        im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
+            function (err, stdout) {
+                if (err) throw err;
+                console.log('stdout:', stdout);
+                im.crop({
+                    srcPath: "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg",
+                    dstPath: "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg",
+                    width: 356,
+                    height: 300,
+                    quality: 1,
+                    gravity: "North"
+                }, function (err, stdout, stderr) {
+                    console.log('cropped thumbnail');
+                });
+            });
+
+    }
+
+    else {
+
+        im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
+            function (err, stdout) {
+                if (err) throw err;
+                console.log('stdout:', stdout);
+            });
+    }
+
     await browser.close();
     //saving directory info
 })
@@ -235,10 +258,10 @@ function domain_from_url(url) {
 
     if (match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n\?\=]+)/im)) {
         result = match[1]
-        console.log(result)
+        //console.log(result)
         if (match = result.match(/^[^\.]+\.(.+\..+)$/)) {
             result = match[0]
-            console.log(match[0]);
+            //console.log(match[0]);
         }
     }
     return result
