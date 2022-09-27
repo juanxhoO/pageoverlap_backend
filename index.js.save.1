@@ -1,4 +1,4 @@
-const puppeteer = require("puppeteer");
+xconst puppeteer = require("puppeteer");
 const cors = require('cors');
 const im = require('imagemagick');
 const Pages = require('./models/Directories.js')
@@ -14,47 +14,6 @@ const compression = require('compression');
 const mongoose = require('mongoose');
 
 
-//Puppeteer configuraciont for better perfomance
-
-const minimal_args = [
-    '--autoplay-policy=user-gesture-required',
-    '--disable-background-networking',
-    '--disable-background-timer-throttling',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-breakpad',
-    '--disable-client-side-phishing-detection',
-    '--disable-component-update',
-    '--disable-default-apps',
-    '--disable-dev-shm-usage',
-    '--disable-domain-reliability',
-    '--disable-extensions',
-    '--disable-features=AudioServiceOutOfProcess',
-    '--disable-hang-monitor',
-    '--disable-ipc-flooding-protection',
-    '--disable-notifications',
-    '--disable-offer-store-unmasked-wallet-cards',
-    '--disable-popup-blocking',
-    '--disable-print-preview',
-    '--disable-prompt-on-repost',
-    '--disable-renderer-backgrounding',
-    '--disable-setuid-sandbox',
-    '--disable-speech-api',
-    '--disable-sync',
-    '--hide-scrollbars',
-    '--ignore-gpu-blacklist',
-    '--metrics-recording-only',
-    '--mute-audio',
-    '--no-default-browser-check',
-    '--no-first-run',
-    '--no-pings',
-    '--no-sandbox',
-    '--no-zygote',
-    '--password-store=basic',
-    '--use-gl=swiftshader',
-    '--use-mock-keychain',
-];
-
-
 app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
@@ -65,14 +24,9 @@ app.use(express.static('public'));
 app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 app.use(compression());
 
-
-
-
-
-
 //Set up default mongoose connection
-//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -126,10 +80,7 @@ app.delete('/api/screenshots/:Id', async (req, res) => {
 
 app.post('/api/pageshot', async (req, res) => {
     const { url, type } = req.body
-    let browser = await puppeteer.launch({
-        headless: true,
-        args: minimal_args
-    });
+    let browser = await puppeteer.launch();
     let page = await browser.newPage();
     let date = new Date();
     let day = ("0" + date.getDate()).slice(-2);
@@ -175,10 +126,12 @@ app.post('/api/pageshot', async (req, res) => {
         });
     }
 
+
     page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36');
     await page.goto(url);
     const hostname = domain_from_url(page.url());
-    await page.waitForTimeout(700);
+
+    await page.waitForTimeout(500);
 
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
