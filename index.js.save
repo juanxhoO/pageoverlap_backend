@@ -1,4 +1,4 @@
-const puppeteer = require("puppeteer");
+xconst puppeteer = require("puppeteer");
 const cors = require('cors');
 const im = require('imagemagick');
 const Pages = require('./models/Directories.js')
@@ -14,47 +14,6 @@ const compression = require('compression');
 const mongoose = require('mongoose');
 
 
-//Puppeteer configuraciont for better perfomance
-
-const minimal_args = [
-    '--autoplay-policy=user-gesture-required',
-    '--disable-background-networking',
-    '--disable-background-timer-throttling',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-breakpad',
-    '--disable-client-side-phishing-detection',
-    '--disable-component-update',
-    '--disable-default-apps',
-    '--disable-dev-shm-usage',
-    '--disable-domain-reliability',
-    '--disable-extensions',
-    '--disable-features=AudioServiceOutOfProcess',
-    '--disable-hang-monitor',
-    '--disable-ipc-flooding-protection',
-    '--disable-notifications',
-    '--disable-offer-store-unmasked-wallet-cards',
-    '--disable-popup-blocking',
-    '--disable-print-preview',
-    '--disable-prompt-on-repost',
-    '--disable-renderer-backgrounding',
-    '--disable-setuid-sandbox',
-    '--disable-speech-api',
-    '--disable-sync',
-    '--hide-scrollbars',
-    '--ignore-gpu-blacklist',
-    '--metrics-recording-only',
-    '--mute-audio',
-    '--no-default-browser-check',
-    '--no-first-run',
-    '--no-pings',
-    '--no-sandbox',
-    '--no-zygote',
-    '--password-store=basic',
-    '--use-gl=swiftshader',
-    '--use-mock-keychain',
-];
-
-
 app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
@@ -65,10 +24,9 @@ app.use(express.static('public'));
 app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 app.use(compression());
 
-
 //Set up default mongoose connection
-//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
@@ -122,14 +80,7 @@ app.delete('/api/screenshots/:Id', async (req, res) => {
 
 app.post('/api/pageshot', async (req, res) => {
     const { url, type } = req.body
-<<<<<<< HEAD
-    let browser = await  puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']})
-=======
-    let browser = await puppeteer.launch({
-        headless: true,
-        args: minimal_args
-    });
->>>>>>> 8fc384c3e688ef1d6ab13b062cb7e4e7fcf048d6
+    let browser = await puppeteer.launch();
     let page = await browser.newPage();
     let date = new Date();
     let day = ("0" + date.getDate()).slice(-2);
@@ -175,14 +126,18 @@ app.post('/api/pageshot', async (req, res) => {
         });
     }
 
+
     page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36');
     await page.goto(url);
     const hostname = domain_from_url(page.url());
-    await page.waitForTimeout(600);
+
+    await page.waitForTimeout(500);
 
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
     const screenshot_pathname = parsed_url.pathname
+
+
     const main_dir = './ImageDatabase/' + hostname;
     const thumbnail_main_dir = './ImageDatabase/' + hostname + '/thumbnails';
 
@@ -204,21 +159,37 @@ app.post('/api/pageshot', async (req, res) => {
         omitBackground: true
     });
 
-    // await page.evaluate(() => {
-    //     document.body.style.background = 'transparent';
-    //     header_divs = document.querySelectorAll('div');
 
-    //     document.querySelector('html').style.background = "transparent";
-    //     for (let i = 0; i < header_divs.length; i++) {
-    //         if (header_divs[i].style.backgroundImage.length <= 0) {
-    //             header_divs[i].style.background = 'transparent';
-    //             header_divs[i].style.backgroundColor = 'transparent';
-    //         }
-    //     }
-    // });
+    await page.evaluate(() => {
+        document.body.style.background = 'transparent';
+        header_divs = document.querySelectorAll('div');
+
+        document.querySelector('html').style.background = "transparent";
+        for (let i = 0; i < header_divs.length; i++) {
+            if (header_divs[i].style.backgroundImage.length <= 0) {
+                header_divs[i].style.background = 'transparent';
+                header_divs[i].style.backgroundColor = 'transparent';
+            }
+        }
+    });
+
+    //Saving Directories Info
+    let doc_page = await Pages.findOne({ hostname })
+    if (!doc_page) {
+        const doc_page = new Pages({
+            title: "dsdsd",
+            url: url,
+            type: 'png',
+            directory: main_dir,
+            hostname: hostname
+        });
+        await doc_page.save();
+        console.log('directory saved');
+    }
+
 
     //saving screenshot info
-    const screenshot =  await new Screenshots({
+    const screenshot = await new Screenshots({
         title: imageName,
         url: url,
         pathname: screenshot_pathname,
@@ -234,7 +205,7 @@ app.post('/api/pageshot', async (req, res) => {
             res.send(err);
         }
         res.status(200)
-        res.send(screenshot);
+        res.send("/images/" + hostname + "/" + imageName + ".jpg");
     });
 
     //PNG Screenshot
@@ -242,11 +213,14 @@ app.post('/api/pageshot', async (req, res) => {
         path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: fulllPageScreen,
         omitBackground: true
     });
-    await browser.close();
-
 
     //Creating Thumbnail
+
+
+
     if (fulllPageScreen === true) {
+        console.log("fullpage screen")
+
         im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
             function (err, stdout) {
                 if (err) throw err;
@@ -262,9 +236,11 @@ app.post('/api/pageshot', async (req, res) => {
                     console.log('cropped thumbnail');
                 });
             });
+
     }
 
     else {
+
         im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
             function (err, stdout) {
                 if (err) throw err;
@@ -272,7 +248,8 @@ app.post('/api/pageshot', async (req, res) => {
             });
     }
 
-  
+    await browser.close();
+    //saving directory info
 })
 
 function domain_from_url(url) {
