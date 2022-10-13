@@ -66,10 +66,6 @@ app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 app.use(compression());
 
 
-
-
-
-
 //Set up default mongoose connection
 //var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
 var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
@@ -178,13 +174,11 @@ app.post('/api/pageshot', async (req, res) => {
     page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36');
     await page.goto(url);
     const hostname = domain_from_url(page.url());
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(600);
 
     const screenshot_url = url
     const parsed_url = new URL(screenshot_url)
     const screenshot_pathname = parsed_url.pathname
-
-
     const main_dir = './ImageDatabase/' + hostname;
     const thumbnail_main_dir = './ImageDatabase/' + hostname + '/thumbnails';
 
@@ -206,37 +200,21 @@ app.post('/api/pageshot', async (req, res) => {
         omitBackground: true
     });
 
+    // await page.evaluate(() => {
+    //     document.body.style.background = 'transparent';
+    //     header_divs = document.querySelectorAll('div');
 
-    await page.evaluate(() => {
-        document.body.style.background = 'transparent';
-        header_divs = document.querySelectorAll('div');
-
-        document.querySelector('html').style.background = "transparent";
-        for (let i = 0; i < header_divs.length; i++) {
-            if (header_divs[i].style.backgroundImage.length <= 0) {
-                header_divs[i].style.background = 'transparent';
-                header_divs[i].style.backgroundColor = 'transparent';
-            }
-        }
-    });
-
-    //Saving Directories Info
-    let doc_page = await Pages.findOne({ hostname })
-    if (!doc_page) {
-        const doc_page = new Pages({
-            title: "dsdsd",
-            url: url,
-            type: 'png',
-            directory: main_dir,
-            hostname: hostname
-        });
-        await doc_page.save();
-        console.log('directory saved');
-    }
-
+    //     document.querySelector('html').style.background = "transparent";
+    //     for (let i = 0; i < header_divs.length; i++) {
+    //         if (header_divs[i].style.backgroundImage.length <= 0) {
+    //             header_divs[i].style.background = 'transparent';
+    //             header_divs[i].style.backgroundColor = 'transparent';
+    //         }
+    //     }
+    // });
 
     //saving screenshot info
-    const screenshot = await new Screenshots({
+    const screenshot =  await new Screenshots({
         title: imageName,
         url: url,
         pathname: screenshot_pathname,
@@ -252,7 +230,7 @@ app.post('/api/pageshot', async (req, res) => {
             res.send(err);
         }
         res.status(200)
-        res.send("/images/" + hostname + "/" + imageName + ".jpg");
+        res.send(screenshot);
     });
 
     //PNG Screenshot
@@ -260,14 +238,11 @@ app.post('/api/pageshot', async (req, res) => {
         path: "./ImageDatabase/" + hostname + "/" + imageName + ".png", fullPage: fulllPageScreen,
         omitBackground: true
     });
+    await browser.close();
+
 
     //Creating Thumbnail
-
-
-
     if (fulllPageScreen === true) {
-        console.log("fullpage screen")
-
         im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
             function (err, stdout) {
                 if (err) throw err;
@@ -283,11 +258,9 @@ app.post('/api/pageshot', async (req, res) => {
                     console.log('cropped thumbnail');
                 });
             });
-
     }
 
     else {
-
         im.convert(["./ImageDatabase/" + hostname + "/" + imageName + ".jpg", '-resize', '356', "./ImageDatabase/" + hostname + "/thumbnails/" + imageName + ".jpg"],
             function (err, stdout) {
                 if (err) throw err;
@@ -295,8 +268,7 @@ app.post('/api/pageshot', async (req, res) => {
             });
     }
 
-    await browser.close();
-    //saving directory info
+  
 })
 
 function domain_from_url(url) {
