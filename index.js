@@ -25,8 +25,8 @@ app.use('/images', express.static(path.join(__dirname, 'ImageDatabase')))
 app.use(compression());
 
 //Set up default mongoose connection
-var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
-//var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
+//var mongoDB = 'mongodb://127.0.0.1/pageoverlapp';
+var mongoDB = 'mongodb+srv://jbgranja:mongo1506@cluster0.ndjj8c5.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
