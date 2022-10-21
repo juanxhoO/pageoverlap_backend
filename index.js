@@ -122,10 +122,14 @@ app.delete('/api/screenshots/:Id', async (req, res) => {
 
 app.post('/api/pageshot', async (req, res) => {
     const { url, type } = req.body
+<<<<<<< HEAD
+    let browser = await  puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']})
+=======
     let browser = await puppeteer.launch({
         headless: true,
         args: minimal_args
     });
+>>>>>>> 8fc384c3e688ef1d6ab13b062cb7e4e7fcf048d6
     let page = await browser.newPage();
     let date = new Date();
     let day = ("0" + date.getDate()).slice(-2);
