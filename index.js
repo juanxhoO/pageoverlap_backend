@@ -200,6 +200,20 @@ app.post('/api/pageshot', async (req, res) => {
         omitBackground: true
     });
 
+    //Saving Directories Info
+    let doc_page = await Pages.findOne({ hostname })
+    if (!doc_page) {
+        const doc_page = new Pages({
+            title: "dsdsd",
+            url: url,
+            type: 'png',
+            directory: main_dir,
+            hostname: hostname
+        });
+        await doc_page.save();
+        console.log('directory saved');
+    }
+
     // await page.evaluate(() => {
     //     document.body.style.background = 'transparent';
     //     header_divs = document.querySelectorAll('div');
@@ -214,7 +228,7 @@ app.post('/api/pageshot', async (req, res) => {
     // });
 
     //saving screenshot info
-    const screenshot =  await new Screenshots({
+    const screenshot = await new Screenshots({
         title: imageName,
         url: url,
         pathname: screenshot_pathname,
@@ -268,7 +282,7 @@ app.post('/api/pageshot', async (req, res) => {
             });
     }
 
-  
+
 })
 
 function domain_from_url(url) {
